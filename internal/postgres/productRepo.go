@@ -55,7 +55,7 @@ func (productRepo) FindAll(db product.Execer, bb *[]product.Barcode) ([]*product
 	}
 
 	stmt := fmt.Sprintf(`
-		SELECT p.id, p.barcode, p.name, a.id, a.barcode, a.name, pa.amount
+		SELECT p.id, p.barcode, p.name, a.id, a.art_id, a.name, pa.amount
 		FROM products p
 		JOIN product_articles pa ON p.id = pa.product_id
 		JOIN articles a ON a.id = pa.article_id
@@ -74,7 +74,7 @@ func (productRepo) FindAll(db product.Execer, bb *[]product.Barcode) ([]*product
 	for rows.Next() {
 		var p product.Product
 		var art product.Article
-		err := rows.Scan(&p.ID, &p.Barcode, &p.Name, &art.ID, &art.Barcode, &art.Name, &art.Amount)
+		err := rows.Scan(&p.ID, &p.Barcode, &p.Name, &art.ID, &art.ArtID, &art.Name, &art.Amount)
 		if err != nil {
 			return nil, errors.E(op, err)
 		}

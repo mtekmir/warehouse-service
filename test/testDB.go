@@ -56,7 +56,7 @@ func CreateArticleTable(t *testing.T, db *sql.DB) {
 	_, err := db.Exec(`
 		create table if not exists articles(
 			id bigserial unique primary key,
-			barcode varchar unique not null,
+			art_id varchar unique not null,
 			name varchar unique not null,
 			stock int default 0
 		)
@@ -72,7 +72,7 @@ func CreateProductTables(t *testing.T, db *sql.DB) {
 	stmts := []string{
 		`create table if not exists articles(
 			id bigserial unique primary key,
-			barcode varchar unique not null,
+			art_id varchar unique not null,
 			name varchar unique not null,
 			stock int default 0
 		)`,

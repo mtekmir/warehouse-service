@@ -15,7 +15,7 @@ type Execer interface {
 
 // Repo provides methods for managing articles in a db.
 type Repo interface {
-	FindAllByBarcode(Execer, *[]Barcode) ([]*Article, error)
+	FindAll(Execer, *[]ArtID) ([]*Article, error)
 	BatchInsert(Execer, []*Article) ([]*Article, error)
 	AdjustQuantities(Execer, QtyAdjustmentKind, []*QtyAdjustment) error
 	Import(Execer, []*Article) ([]*Article, error)

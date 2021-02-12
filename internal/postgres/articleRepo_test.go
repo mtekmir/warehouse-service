@@ -24,15 +24,15 @@ func TestBatchInsert(t *testing.T) {
 	}
 
 	expectedArts := []*article.Article{
-		{ID: 1, Name: "Name_1", Barcode: "Barcode_1", Stock: 1},
-		{ID: 2, Name: "Name_2", Barcode: "Barcode_2", Stock: 2},
-		{ID: 3, Name: "Name_3", Barcode: "Barcode_3", Stock: 3},
+		{ID: 1, Name: "Name_1", ArtID: "ArtID_1", Stock: 1},
+		{ID: 2, Name: "Name_2", ArtID: "ArtID_2", Stock: 2},
+		{ID: 3, Name: "Name_3", ArtID: "ArtID_3", Stock: 3},
 	}
 
 	test.CompareArticleSlices(t, expectedArts, arts)
 }
 
-func TestFindAllByBarcode(t *testing.T) {
+func TestFindAll(t *testing.T) {
 	db, dbTidy := test.SetupDB(t)
 	defer dbTidy()
 
@@ -46,15 +46,15 @@ func TestFindAllByBarcode(t *testing.T) {
 		t.Errorf("Unable to batch insert articles. %v", err)
 	}
 
-	found, err := r.FindAllByBarcode(db, &[]article.Barcode{"Barcode_1", "Barcode_2", "Barcode_3"})
+	found, err := r.FindAll(db, &[]article.ArtID{"ArtID_1", "ArtID_2", "ArtID_3"})
 	if err != nil {
 		t.Errorf("Unable to find articles. %v", err)
 	}
 
 	expectedArts := []*article.Article{
-		{ID: 1, Name: "Name_1", Barcode: "Barcode_1", Stock: 1},
-		{ID: 2, Name: "Name_2", Barcode: "Barcode_2", Stock: 2},
-		{ID: 3, Name: "Name_3", Barcode: "Barcode_3", Stock: 3},
+		{ID: 1, Name: "Name_1", ArtID: "ArtID_1", Stock: 1},
+		{ID: 2, Name: "Name_2", ArtID: "ArtID_2", Stock: 2},
+		{ID: 3, Name: "Name_3", ArtID: "ArtID_3", Stock: 3},
 	}
 
 	test.CompareArticleSlices(t, expectedArts, found)
@@ -79,15 +79,15 @@ func TestAdjustQuantities(t *testing.T) {
 		t.Errorf("Unable to adjust quantities of articles. %v", err)
 	}
 
-	found, err := r.FindAllByBarcode(db, nil)
+	found, err := r.FindAll(db, nil)
 	if err != nil {
 		t.Errorf("Unable to find articles. %v", err)
 	}
 
 	expectedArts := []*article.Article{
-		{ID: 1, Name: "Name_1", Barcode: "Barcode_1", Stock: 11},
-		{ID: 2, Name: "Name_2", Barcode: "Barcode_2", Stock: 22},
-		{ID: 3, Name: "Name_3", Barcode: "Barcode_3", Stock: 3},
+		{ID: 1, Name: "Name_1", ArtID: "ArtID_1", Stock: 11},
+		{ID: 2, Name: "Name_2", ArtID: "ArtID_2", Stock: 22},
+		{ID: 3, Name: "Name_3", ArtID: "ArtID_3", Stock: 3},
 	}
 
 	test.CompareArticleSlices(t, expectedArts, found)
@@ -97,15 +97,15 @@ func TestAdjustQuantities(t *testing.T) {
 		t.Errorf("Unable to adjust quantities of articles. %v", err)
 	}
 
-	found, err = r.FindAllByBarcode(db, nil)
+	found, err = r.FindAll(db, nil)
 	if err != nil {
 		t.Errorf("Unable to find articles. %v", err)
 	}
 
 	expectedArts = []*article.Article{
-		{ID: 1, Name: "Name_1", Barcode: "Barcode_1", Stock: 11},
-		{ID: 2, Name: "Name_2", Barcode: "Barcode_2", Stock: 20},
-		{ID: 3, Name: "Name_3", Barcode: "Barcode_3", Stock: 0},
+		{ID: 1, Name: "Name_1", ArtID: "ArtID_1", Stock: 11},
+		{ID: 2, Name: "Name_2", ArtID: "ArtID_2", Stock: 20},
+		{ID: 3, Name: "Name_3", ArtID: "ArtID_3", Stock: 0},
 	}
 
 	test.CompareArticleSlices(t, expectedArts, found)
@@ -115,15 +115,15 @@ func TestAdjustQuantities(t *testing.T) {
 		t.Errorf("Unable to adjust quantities of articles. %v", err)
 	}
 
-	found, err = r.FindAllByBarcode(db, nil)
+	found, err = r.FindAll(db, nil)
 	if err != nil {
 		t.Errorf("Unable to find articles. %v", err)
 	}
 
 	expectedArts = []*article.Article{
-		{ID: 1, Name: "Name_1", Barcode: "Barcode_1", Stock: 5},
-		{ID: 2, Name: "Name_2", Barcode: "Barcode_2", Stock: 10},
-		{ID: 3, Name: "Name_3", Barcode: "Barcode_3", Stock: 0},
+		{ID: 1, Name: "Name_1", ArtID: "ArtID_1", Stock: 5},
+		{ID: 2, Name: "Name_2", ArtID: "ArtID_2", Stock: 10},
+		{ID: 3, Name: "Name_3", ArtID: "ArtID_3", Stock: 0},
 	}
 
 	test.CompareArticleSlices(t, expectedArts, found)
@@ -144,9 +144,9 @@ func TestImport(t *testing.T) {
 	}
 
 	expectedArts := []*article.Article{
-		{ID: 1, Name: "Name_1", Barcode: "Barcode_1", Stock: 1},
-		{ID: 2, Name: "Name_2", Barcode: "Barcode_2", Stock: 2},
-		{ID: 3, Name: "Name_3", Barcode: "Barcode_3", Stock: 3},
+		{ID: 1, Name: "Name_1", ArtID: "ArtID_1", Stock: 1},
+		{ID: 2, Name: "Name_2", ArtID: "ArtID_2", Stock: 2},
+		{ID: 3, Name: "Name_3", ArtID: "ArtID_3", Stock: 3},
 	}
 
 	test.CompareArticleSlices(t, expectedArts, imported)
@@ -157,14 +157,14 @@ func TestImport(t *testing.T) {
 	}
 
 	expectedArts = []*article.Article{
-		{ID: 1, Name: "Name_1", Barcode: "Barcode_1", Stock: 2},
-		{ID: 2, Name: "Name_2", Barcode: "Barcode_2", Stock: 4},
-		{ID: 3, Name: "Name_3", Barcode: "Barcode_3", Stock: 6},
+		{ID: 1, Name: "Name_1", ArtID: "ArtID_1", Stock: 2},
+		{ID: 2, Name: "Name_2", ArtID: "ArtID_2", Stock: 4},
+		{ID: 3, Name: "Name_3", ArtID: "ArtID_3", Stock: 6},
 	}
 
 	test.CompareArticleSlices(t, expectedArts, imported)
 
-	found, err := r.FindAllByBarcode(db, nil)
+	found, err := r.FindAll(db, nil)
 	if err != nil {
 		t.Errorf("Unable to find all articles. %v", err)
 	}
@@ -177,7 +177,7 @@ func createArticles(n int) []*article.Article {
 	for i := 0; i < n; i++ {
 		aa = append(aa, &article.Article{
 			Name:    fmt.Sprintf("Name_%d", i+1),
-			Barcode: article.Barcode(fmt.Sprintf("Barcode_%d", i+1)),
+			ArtID: article.ArtID(fmt.Sprintf("ArtID_%d", i+1)),
 			Stock:   i + 1,
 		})
 	}

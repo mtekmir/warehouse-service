@@ -27,11 +27,11 @@ func TestImport(t *testing.T) {
 	}
 
 	expectedArts := []*article.Article{
-		{ID: 1, Name: "Article_1_1", Barcode: "Art_Barcode_1_1", Stock: 5},
-		{ID: 2, Name: "Article_1_2", Barcode: "Art_Barcode_1_2", Stock: 5},
+		{ID: 1, Name: "Article_1_1", ArtID: "Art_ArtID_1_1", Stock: 5},
+		{ID: 2, Name: "Article_1_2", ArtID: "Art_ArtID_1_2", Stock: 5},
 	}
 
-	foundArts, err := ar.FindAllByBarcode(db, nil)
+	foundArts, err := ar.FindAll(db, nil)
 	if err != nil {
 		t.Errorf("Unable to find all articles. %v", err)
 	}
@@ -40,10 +40,10 @@ func TestImport(t *testing.T) {
 
 	expectedPP := []*product.Product{
 		{ID: 1, Name: "Name_1", Barcode: "Barcode_1", Articles: []*product.Article{
-			{ID: 1, Name: "Article_1_1", Barcode: "Art_Barcode_1_1", Amount: 5},
+			{ID: 1, Name: "Article_1_1", ArtID: "Art_ArtID_1_1", Amount: 5},
 		}},
 		{ID: 2, Name: "Name_2", Barcode: "Barcode_2", Articles: []*product.Article{
-			{ID: 2, Name: "Article_1_2", Barcode: "Art_Barcode_1_2", Amount: 5},
+			{ID: 2, Name: "Article_1_2", ArtID: "Art_ArtID_1_2", Amount: 5},
 		}},	
 	}
 
@@ -62,7 +62,7 @@ func createArticles(n int) []*product.Product {
 			Name:    fmt.Sprintf("Name_%d", i+1),
 			Barcode: product.Barcode(fmt.Sprintf("Barcode_%d", i+1)),
 			Articles: []*product.Article{
-				{Name: fmt.Sprintf("Article_1_%d", i+1), Barcode: article.Barcode(fmt.Sprintf("Art_Barcode_1_%d", i+1)), Amount: 5},
+				{Name: fmt.Sprintf("Article_1_%d", i+1), ArtID: article.ArtID(fmt.Sprintf("Art_ArtID_1_%d", i+1)), Amount: 5},
 			},
 		})
 	}

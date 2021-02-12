@@ -23,6 +23,6 @@ func Compare(t *testing.T, name string, expected, got interface{}, opts ...cmp.O
 // CompareArticleSlices compares article slices.
 func CompareArticleSlices(t *testing.T, expected, got []*article.Article) {
 	Compare(t, "article slice", expected, got, cmpopts.SortSlices(func(a1, a2 *article.Article) bool {
-		return a1.Barcode > a2.Barcode
+		return a1.ArtID > a2.ArtID
 	}))
 }

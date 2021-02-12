@@ -1,6 +1,6 @@
 create table if not exists articles(
   id bigserial unique primary key,
-  barcode varchar unique not null,
-  name varchar unique not null,
+  art_id varchar unique not null,
+  name varchar not null,
   stock int default 0
 )

@@ -39,13 +39,13 @@ func (s *Service) Import(rows []*Product) error {
 	}
 
 	// Find existing products
-	barcodes := make([]*Barcode, 0, len(rows)) // For finding existing products
+	barcodes := make([]*Barcode, 0, len(rows))     // For finding existing products
 	arts := make([]*article.Article, 0, len(rows)) // For importing articles
-	
+
 	for _, r := range rows {
 		barcodes = append(barcodes, &r.Barcode)
 		for _, a := range r.Articles {
-			arts = append(arts, &article.Article{ID: a.ID, Barcode: a.Barcode, Name: a.Name, Stock: a.Amount})
+			arts = append(arts, &article.Article{ID: a.ID, ArtID: a.ArtID, Name: a.Name, Stock: a.Amount})
 		}
 	}
 
@@ -62,9 +62,9 @@ func (s *Service) Import(rows []*Product) error {
 		tx.Rollback()
 		return errors.E(op, err)
 	}
-	artBarcodeToID := make(map[article.Barcode]article.ID, len(insertedArts))
+	artIDtoID := make(map[article.ArtID]article.ID, len(insertedArts))
 	for _, art := range insertedArts {
-		artBarcodeToID[art.Barcode] = art.ID
+		artIDtoID[art.ArtID] = art.ID
 	}
 
 	// Create non-existing products
@@ -91,7 +91,7 @@ func (s *Service) Import(rows []*Product) error {
 		for _, p := range rows {
 			if pID, ok := createdBarcodeToID[p.Barcode]; ok {
 				for _, a := range p.Articles {
-					pArts = append(pArts, &ArticleRow{ID: artBarcodeToID[a.Barcode], ProductID: pID, Amount: a.Amount})
+					pArts = append(pArts, &ArticleRow{ID: artIDtoID[a.ArtID], ProductID: pID, Amount: a.Amount})
 				}
 			}
 		}
