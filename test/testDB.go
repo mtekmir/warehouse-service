@@ -49,3 +49,50 @@ func SetupDB(t *testing.T) (*sql.DB, func()) {
 
 	return db, dbTidy
 }
+
+// CreateArticleTable creates articles table for tests.
+func CreateArticleTable(t *testing.T, db *sql.DB) {
+	t.Helper()
+	_, err := db.Exec(`
+		create table if not exists articles(
+			id bigserial unique primary key,
+			barcode varchar unique not null,
+			name varchar unique not null,
+			stock int default 0
+		)
+	`)
+	if err != nil {
+		t.Fatalf("Unable to create articles table. %v", err)
+	}
+}
+
+// CreateProductTables creates product tables for test.
+func CreateProductTables(t *testing.T, db *sql.DB) {
+	t.Helper()
+	stmts := []string{
+		`create table if not exists articles(
+			id bigserial unique primary key,
+			barcode varchar unique not null,
+			name varchar unique not null,
+			stock int default 0
+		)`,
+		`create table if not exists products(
+			id bigserial unique primary key,
+			barcode varchar unique not null,
+			name varchar unique not null
+		)`,
+		`create table if not exists product_articles(
+			id bigserial unique primary key,
+			amount int not null,
+			product_id bigint not null references products(id),
+			article_id bigint not null references articles(id)
+		)`,
+	}
+
+	for _, s := range stmts {
+		_, err := db.Exec(s)
+		if err != nil {
+			t.Fatalf("Failed to create tables for product tests. %v", err)
+		}
+	}
+}
