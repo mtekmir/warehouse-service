@@ -1,8 +1,11 @@
 package server
 
 import (
+	"fmt"
 	"log"
 	"net/http"
+	"regexp"
+	"time"
 
 	"github.com/mtekmir/warehouse-service/internal/article"
 	"github.com/mtekmir/warehouse-service/internal/product"
@@ -15,13 +18,25 @@ type Server struct {
 	articleService *article.Service
 }
 
+var productPath = regexp.MustCompile(`/products/([0-9]+)`)
+
 const (
 	importProductsPath = "/products/import"
+	getProductsPath    = "/products"
 	importArticlesPath = "/articles/import"
 )
 
 func (s *Server) router(w http.ResponseWriter, r *http.Request) {
 	switch {
+
+	case r.Method == http.MethodGet && r.URL.Path == getProductsPath:
+		handler(s.handleGetProducts).ServeHTTP(w, r)
+
+	case r.Method == http.MethodGet && productPath.MatchString(r.URL.Path):
+		handler(s.handleGetProduct).ServeHTTP(w, r)
+
+	case r.Method == http.MethodPost && productPath.MatchString(r.URL.Path):
+		handler(s.handleRemoveProduct).ServeHTTP(w, r)
 
 	case r.Method == http.MethodPost && r.URL.Path == importProductsPath:
 		handler(s.handleImportProducts).ServeHTTP(w, r)
@@ -33,10 +48,17 @@ func (s *Server) router(w http.ResponseWriter, r *http.Request) {
 }
 
 // Start starts the server. Server sets up the routes and starts listening.
-func (s *Server) Start() error {
+func (s *Server) Start(port string, wTimeout, rTimeout, idleTimeout time.Duration) error {
 	http.Handle("/", applyMiddlewares(http.HandlerFunc(s.router), noPanicMiddleware, corsMiddleware("*")))
 
-	return http.ListenAndServe(":8080", nil)
+	srv := http.Server{
+		Addr:         fmt.Sprintf(":%s", port),
+		WriteTimeout: wTimeout,
+		ReadTimeout:  rTimeout,
+		IdleTimeout:  idleTimeout,
+	}
+
+	return srv.ListenAndServe()
 }
 
 // NewServer returns a new server instance with required dependencies.

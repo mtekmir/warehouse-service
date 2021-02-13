@@ -89,3 +89,21 @@ type ArticleRow struct {
 	ProductID ID
 	Amount    int
 }
+
+// ArticleStock conveys the stock information of an article that is required to assemble a product.
+type ArticleStock struct {
+	ID             article.ID    `json:"-"`
+	ArtID          article.ArtID `json:"art_id"`
+	Name           string        `json:"name"`
+	Stock          int           `json:"stock"`
+	RequiredAmount int           `json:"reqired_amount"`
+}
+
+// StockInfo conveys the stock information of a product and the required parts.
+type StockInfo struct {
+	ID           ID              `json:"id"`
+	Barcode      Barcode         `json:"barcode"`
+	Name         string          `json:"name"`
+	AvailableQty int             `json:"available_quantity"`
+	Articles     []*ArticleStock `json:"contain_articles"`
+}

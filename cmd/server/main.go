@@ -30,13 +30,13 @@ func program() error {
 
 	pr := postgres.NewProductRepo()
 	ar := postgres.NewArticleRepo()
-	
+
 	ps := product.NewService(db, pr, ar)
 	as := article.NewService(db, ar)
 
 	s := server.NewServer(ps, as)
 
-	if err := s.Start(); err != nil {
+	if err := s.Start(c.Port, c.WriteTimeout, c.ReadTimeout, c.IdleTimeout); err != nil {
 		return err
 	}
 

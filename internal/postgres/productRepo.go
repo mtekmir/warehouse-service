@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"fmt"
+	"math"
 	"strings"
 
 	"github.com/mtekmir/warehouse-service/internal/errors"
@@ -40,27 +41,38 @@ func (productRepo) ExistingProductsMap(db product.Execer, bb []*product.Barcode)
 	return m, nil
 }
 
-func (productRepo) FindAll(db product.Execer, bb *[]product.Barcode) ([]*product.Product, error) {
-	var op errors.Op = "productRepo.findAllByBarcode"
+func (productRepo) FindAll(db product.Execer, ff *product.Filters) ([]*product.StockInfo, error) {
+	var op errors.Op = "productRepo.findAll"
 
-	var whereInQuery string
+	filterQueries := make([]string, 0, 2)
 	var values []interface{}
-	if bb != nil {
-		pHolders := make([]string, 0, len(*bb))
-		for i, b := range *bb {
+	
+	if ff.BB != nil {
+		pHolders := make([]string, 0, len(*ff.BB))
+		for i, b := range *ff.BB {
 			pHolders = append(pHolders, fmt.Sprintf("$%d", i+1))
 			values = append(values, b)
 		}
-		whereInQuery = fmt.Sprintf("WHERE p.barcode IN (%s)", strings.Join(pHolders, ","))
+		filterQueries = append(filterQueries, fmt.Sprintf("p.barcode IN (%s)", strings.Join(pHolders, ",")))
+	}
+
+	if ff.ID != nil {
+		filterQueries = append(filterQueries, fmt.Sprintf("p.id = %d", len(values)+1))
+	}
+
+	var filters string
+	if len(filterQueries) > 0 {
+		filters = fmt.Sprintf("WHERE %s", strings.Join(filterQueries, " AND "))
 	}
 
 	stmt := fmt.Sprintf(`
-		SELECT p.id, p.barcode, p.name, a.id, a.art_id, a.name, pa.amount
+		SELECT p.id, p.barcode, p.name, 
+		a.id, a.art_id, a.name, pa.amount, a.stock
 		FROM products p
 		JOIN product_articles pa ON p.id = pa.product_id
 		JOIN articles a ON a.id = pa.article_id
 		%s
-`, whereInQuery)
+	`, filters)
 
 	rows, err := db.Query(stmt, values...)
 	if err != nil {
@@ -68,28 +80,38 @@ func (productRepo) FindAll(db product.Execer, bb *[]product.Barcode) ([]*product
 	}
 	defer rows.Close()
 
-	pp := map[product.ID]*product.Product{}
+	pp := map[product.ID]*product.StockInfo{}
 	var order []product.ID
 
 	for rows.Next() {
-		var p product.Product
-		var art product.Article
-		err := rows.Scan(&p.ID, &p.Barcode, &p.Name, &art.ID, &art.ArtID, &art.Name, &art.Amount)
+		var p product.StockInfo
+		var art product.ArticleStock
+
+		err := rows.Scan(&p.ID, &p.Barcode, &p.Name, &art.ID, &art.ArtID, &art.Name, &art.RequiredAmount, &art.Stock)
 		if err != nil {
 			return nil, errors.E(op, err)
 		}
+
 		if found, ok := pp[p.ID]; ok {
 			found.Articles = append(found.Articles, &art)
 			continue
 		}
-		p.Articles = []*product.Article{&art}
+		p.Articles = []*product.ArticleStock{&art}
 		pp[p.ID] = &p
 		order = append(order, p.ID)
 	}
 
-	res := make([]*product.Product, 0, len(order))
+	res := make([]*product.StockInfo, 0, len(order))
 	for _, id := range order {
-		res = append(res, pp[id])
+		p := pp[id]
+		minStock := math.MaxInt64
+		for _, art := range p.Articles {
+			if art.Stock/art.RequiredAmount < minStock {
+				minStock = art.Stock / art.RequiredAmount
+			}
+		}
+		p.AvailableQty = minStock
+		res = append(res, p)
 	}
 
 	return res, nil
