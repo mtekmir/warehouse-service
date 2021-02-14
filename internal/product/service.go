@@ -8,8 +8,8 @@ import (
 	"github.com/mtekmir/warehouse-service/internal/errors"
 )
 
-// Execer provides an interface for required db methods.
-type Execer interface {
+// Executor provides an interface for required db methods.
+type Executor interface {
 	QueryRow(query string, args ...interface{}) *sql.Row
 	Exec(query string, args ...interface{}) (sql.Result, error)
 	Query(query string, args ...interface{}) (*sql.Rows, error)
@@ -23,10 +23,10 @@ type Filters struct {
 
 // Repo provides methods for managing products in a db.
 type Repo interface {
-	FindAll(Execer, *Filters) ([]*StockInfo, error)
-	BatchInsert(Execer, []*Product) ([]*Product, error)
-	InsertProductArticles(Execer, []*ArticleRow) error
-	ExistingProductsMap(Execer, []*Barcode) (map[Barcode]ID, error)
+	FindAll(Executor, *Filters) ([]*StockInfo, error)
+	BatchInsert(Executor, []*Product) ([]*Product, error)
+	InsertProductArticles(Executor, []*ArticleRow) error
+	ExistingProductsMap(Executor, []*Barcode) (map[Barcode]ID, error)
 }
 
 // Service exposes methods on products.
@@ -123,7 +123,6 @@ func (s *Service) Import(rows []*Product) error {
 	}
 
 	// Import articles
-
 	insertedArts, err := s.articleRepo.Import(tx, arts)
 	if err != nil {
 		tx.Rollback()
@@ -171,7 +170,7 @@ func (s *Service) Import(rows []*Product) error {
 				return errors.E(op, err)
 			}
 		}
-		
+
 	}
 
 	if err := tx.Commit(); err != nil {

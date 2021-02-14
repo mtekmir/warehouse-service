@@ -37,7 +37,7 @@ func TestImportProducts(t *testing.T) {
 		t.Errorf("Unable to find all articles. %v", err)
 	}
 
-	test.CompareArticleSlices(t, expectedArts, foundArts)
+	test.Compare(t, "article", expectedArts, foundArts)
 
 	expectedPP := []*product.StockInfo{
 		{ID: 1, Name: "Name_1", Barcode: "Barcode_1", AvailableQty: 1, Articles: []*product.ArticleStock{
@@ -116,7 +116,6 @@ func TestRemove(t *testing.T) {
 	}
 
 	test.Compare(t, "stockInfo", expectedStockInfo, foundP, cmpopts.IgnoreFields(product.ArticleStock{}, "ID"))
-
 }
 
 func compareStockInfos(t *testing.T, expected, got *product.StockInfo) {

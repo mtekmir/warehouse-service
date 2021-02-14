@@ -6,8 +6,8 @@ import (
 	"github.com/mtekmir/warehouse-service/internal/errors"
 )
 
-// Execer provides an interface for required db methods.
-type Execer interface {
+// Executor provides an interface for required db methods.
+type Executor interface {
 	QueryRow(query string, args ...interface{}) *sql.Row
 	Exec(query string, args ...interface{}) (sql.Result, error)
 	Query(query string, args ...interface{}) (*sql.Rows, error)
@@ -15,10 +15,10 @@ type Execer interface {
 
 // Repo provides methods for managing articles in a db.
 type Repo interface {
-	FindAll(Execer, *[]ArtID) ([]*Article, error)
-	BatchInsert(Execer, []*Article) ([]*Article, error)
-	AdjustQuantities(Execer, QtyAdjustmentKind, []*QtyAdjustment) error
-	Import(Execer, []*Article) ([]*Article, error)
+	FindAll(Executor, *[]ArtID) ([]*Article, error)
+	BatchInsert(Executor, []*Article) ([]*Article, error)
+	AdjustQuantities(Executor, QtyAdjustmentKind, []*QtyAdjustment) error
+	Import(Executor, []*Article) ([]*Article, error)
 }
 
 type Service struct {

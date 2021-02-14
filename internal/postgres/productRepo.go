@@ -11,7 +11,7 @@ import (
 
 type productRepo struct{}
 
-func (productRepo) ExistingProductsMap(db product.Execer, bb []*product.Barcode) (map[product.Barcode]product.ID, error) {
+func (productRepo) ExistingProductsMap(db product.Executor, bb []*product.Barcode) (map[product.Barcode]product.ID, error) {
 	var op errors.Op = "productRepo.existingProductsMap"
 
 	pHolders := make([]string, 0, len(bb))
@@ -41,12 +41,12 @@ func (productRepo) ExistingProductsMap(db product.Execer, bb []*product.Barcode)
 	return m, nil
 }
 
-func (productRepo) FindAll(db product.Execer, ff *product.Filters) ([]*product.StockInfo, error) {
+func (productRepo) FindAll(db product.Executor, ff *product.Filters) ([]*product.StockInfo, error) {
 	var op errors.Op = "productRepo.findAll"
 
 	filterQueries := make([]string, 0, 2)
 	var values []interface{}
-	
+
 	if ff.BB != nil {
 		pHolders := make([]string, 0, len(*ff.BB))
 		for i, b := range *ff.BB {
@@ -117,7 +117,7 @@ func (productRepo) FindAll(db product.Execer, ff *product.Filters) ([]*product.S
 	return res, nil
 }
 
-func (productRepo) BatchInsert(db product.Execer, pp []*product.Product) ([]*product.Product, error) {
+func (productRepo) BatchInsert(db product.Executor, pp []*product.Product) ([]*product.Product, error) {
 	var op errors.Op = "productRepo.batchInsert"
 
 	values := make([]interface{}, 0, len(pp))
@@ -152,7 +152,7 @@ func (productRepo) BatchInsert(db product.Execer, pp []*product.Product) ([]*pro
 	return inserted, nil
 }
 
-func (productRepo) InsertProductArticles(db product.Execer, arts []*product.ArticleRow) error {
+func (productRepo) InsertProductArticles(db product.Executor, arts []*product.ArticleRow) error {
 	var op errors.Op = "productRepo.insertProductArticles"
 
 	pHolders := make([]string, 0, len(arts))
@@ -172,7 +172,6 @@ func (productRepo) InsertProductArticles(db product.Execer, arts []*product.Arti
 
 	_, err := db.Exec(stmt, values...)
 	if err != nil {
-		fmt.Println("asdasd")
 		return errors.E(op, err)
 	}
 

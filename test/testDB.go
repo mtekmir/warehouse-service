@@ -7,10 +7,40 @@ import (
 
 	// Postgres driver
 	_ "github.com/jackc/pgx/v4/stdlib"
+	"github.com/mtekmir/warehouse-service/internal/article"
 	"github.com/mtekmir/warehouse-service/internal/config"
 )
 
-// SetupDB sets up test db.
+// SetupTX Sets up a database transaction to be used in tests. DbTidy will
+// Rollback the tx after test func returns.
+func SetupTX(t *testing.T) (tx *sql.Tx, dbTidy func()) {
+	t.Helper()
+
+	conf, err := config.Parse()
+	if err != nil {
+		t.Fatalf("Unable to parse config. %v", err)
+		return nil, func() {}
+	}
+
+	db, err := sql.Open("pgx", conf.DBURL)
+	if err != nil {
+		t.Fatalf("Failed to initialize db. Err: %s", err.Error())
+	}
+
+	tx, err = db.Begin()
+	if err != nil {
+		t.Fatalf("Unable to begin tx. %v", err)
+	}
+
+	dbTidy = func() {
+		tx.Rollback()
+		db.Close()
+	}
+
+	return tx, dbTidy
+}
+
+// SetupDB sets up test db. To be used in tests that setup a TX.
 func SetupDB(t *testing.T) (*sql.DB, func()) {
 	t.Helper()
 
@@ -19,7 +49,7 @@ func SetupDB(t *testing.T) (*sql.DB, func()) {
 		t.Fatalf("Unable to parse config. %v", err)
 		return nil, func() {}
 	}
-	
+
 	db, err := sql.Open("pgx", conf.DBURL)
 	if err != nil {
 		t.Fatalf("Failed to initialize db. Err: %s", err.Error())
@@ -51,7 +81,7 @@ func SetupDB(t *testing.T) (*sql.DB, func()) {
 }
 
 // CreateArticleTable creates articles table for tests.
-func CreateArticleTable(t *testing.T, db *sql.DB) {
+func CreateArticleTable(t *testing.T, db article.Executor) {
 	t.Helper()
 	_, err := db.Exec(`
 		create table if not exists articles(

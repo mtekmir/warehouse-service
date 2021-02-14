@@ -6,8 +6,6 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/mtekmir/warehouse-service/internal/article"
 )
 
 // Compare compares two values and calls t.Error if they are different and printing the diff.
@@ -18,11 +16,4 @@ func Compare(t *testing.T, name string, expected, got interface{}, opts ...cmp.O
 		t.Errorf("%ss are not equal (-want +got):", name)
 		t.Error(diff)
 	}
-}
-
-// CompareArticleSlices compares article slices.
-func CompareArticleSlices(t *testing.T, expected, got []*article.Article) {
-	Compare(t, "article slice", expected, got, cmpopts.SortSlices(func(a1, a2 *article.Article) bool {
-		return a1.ArtID > a2.ArtID
-	}))
 }

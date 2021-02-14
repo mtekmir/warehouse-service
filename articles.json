@@ -1,0 +1,14 @@
+{
+  "inventory": [
+    {
+      "art_id": "1",
+      "name": "side rail",
+      "stock": "43"
+    },
+    {
+      "art_id": "2",
+      "name": "bottom leg",
+      "stock": "441"
+    }
+  ]
+}

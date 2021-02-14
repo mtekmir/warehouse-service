@@ -1,0 +1,31 @@
+{
+  "products": [
+    {
+      "name": "bottom chair",
+      "barcode": "216280136",
+      "contain_articles": [
+        {
+          "art_id": "1",
+          "name": "side chipboard",
+          "stock": "477"
+        }
+      ]
+    },
+    {
+      "name": "rear pillow",
+      "barcode": "783046224",
+      "contain_articles": [
+        {
+          "art_id": "1",
+          "name": "top door",
+          "stock": "63"
+        },
+        {
+          "art_id": "2",
+          "name": "bottom chipboard",
+          "stock": "58"
+        }
+      ]
+    }
+  ]
+}

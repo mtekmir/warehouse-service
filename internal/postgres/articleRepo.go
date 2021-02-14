@@ -10,28 +10,30 @@ import (
 
 type articleRepo struct{}
 
-func (r articleRepo) Import(db article.Execer, aa []*article.Article) ([]*article.Article, error) {
+func (r articleRepo) Import(db article.Executor, aa []*article.Article) ([]*article.Article, error) {
 	var op errors.Op = "articleRepo.import"
 
 	// Handle duplicates
+	order := make([]article.ArtID, 0, len(aa))
 	rowMap := make(map[article.ArtID][]*article.Article)
 	for _, art := range aa {
 		if existing, ok := rowMap[art.ArtID]; ok {
 			existing = append(existing, art)
 			continue
 		}
+		order = append(order, art.ArtID)
 		rowMap[art.ArtID] = []*article.Article{art}
 	}
 
 	rows := make([]*article.Article, 0, len(rowMap))
-	for b, rr := range rowMap {
-		art := &article.Article{ArtID: b, Name: rr[0].Name}
+	for _, id := range order {
+		rr := rowMap[id]
+		art := &article.Article{ArtID: id, Name: rr[0].Name}
 		for _, r := range rr {
 			art.Stock += r.Stock
 		}
 		rows = append(rows, art)
 	}
-
 
 	//
 	// Find existing articles
@@ -49,45 +51,88 @@ func (r articleRepo) Import(db article.Execer, aa []*article.Article) ([]*articl
 		existingM[art.ArtID] = art
 	}
 
-	//
-	// Create non existing ones
-	artToCreate := make([]*article.Article, 0, len(rows)-len(existing))
-	for _, r := range rows {
-		if _, ok := existingM[r.ArtID]; !ok {
-			artToCreate = append(artToCreate, &article.Article{Name: r.Name, ArtID: r.ArtID, Stock: r.Stock})
-		}
+	type result struct {
+		Arts []*article.Article
+		Err  error
 	}
 
-	var created []*article.Article
-	if len(artToCreate) > 0 {
-		arts, err := r.BatchInsert(db, artToCreate)
-		if err != nil {
-			return nil, err
+	//
+	// Create non existing ones
+	createdC := make(chan *result)
+	go func() {
+		artToCreate := make([]*article.Article, 0, len(rows)-len(existing))
+		for _, r := range rows {
+			if _, ok := existingM[r.ArtID]; !ok {
+				artToCreate = append(artToCreate, &article.Article{Name: r.Name, ArtID: r.ArtID, Stock: r.Stock})
+			}
 		}
-		created = arts
-	}
+
+		if len(artToCreate) > 0 {
+			arts, err := r.BatchInsert(db, artToCreate)
+			if err != nil {
+				createdC <- &result{Err: err}
+				return
+			}
+			createdC <- &result{Arts: arts}
+			return
+		}
+
+		createdC <- &result{}
+	}()
 
 	//
 	// Update existing articles
-	adjustments := make([]*article.QtyAdjustment, 0, len(existing))
-	for _, r := range rows {
-		if art, ok := existingM[r.ArtID]; ok {
-			adjustments = append(adjustments, &article.QtyAdjustment{ID: art.ID, Qty: r.Stock})
-			// update quantities in existingM.
-			art.Stock += r.Stock
+	updatedC := make(chan *result)
+	go func() {
+		updated := make([]*article.Article, 0, len(existing))
+
+		adjustments := make([]*article.QtyAdjustment, 0, len(existing))
+		for _, r := range rows {
+			if art, ok := existingM[r.ArtID]; ok {
+				adjustments = append(adjustments, &article.QtyAdjustment{ID: art.ID, Qty: r.Stock})
+				// update quantities in existingM.
+				art.Stock += r.Stock
+				updated = append(updated, art)
+			}
+		}
+
+		if len(adjustments) > 0 {
+			if err := r.AdjustQuantities(db, article.QtyAdjustmentAdd, adjustments); err != nil {
+				updatedC <- &result{Err: err}
+				return
+			}
+			updatedC <- &result{Arts: updated}
+			return
+		}
+
+		updatedC <- &result{}
+	}()
+
+	results := make([]*article.Article, 0, len(rows))
+
+	for i := 0; i < 2; i++ {
+		select {
+		case res := <-createdC:
+			if res.Err != nil {
+				return nil, errors.E(op, res.Err)
+			}
+			if res.Arts != nil {
+				results = append(results, res.Arts...)
+			}
+		case res := <-updatedC:
+			if res.Err != nil {
+				return nil, errors.E(op, res.Err)
+			}
+			if res.Arts != nil {
+				results = append(results, res.Arts...)
+			}
 		}
 	}
 
-	if len(adjustments) > 0 {
-		if err := r.AdjustQuantities(db, article.QtyAdjustmentAdd, adjustments); err != nil {
-			return nil, errors.E(op, err)
-		}
-	}
-
-	return append(existing, created...), nil
+	return results, nil
 }
 
-func (articleRepo) BatchInsert(db article.Execer, arts []*article.Article) ([]*article.Article, error) {
+func (articleRepo) BatchInsert(db article.Executor, arts []*article.Article) ([]*article.Article, error) {
 	var op errors.Op = "articleRepo.batchInsert"
 
 	values := make([]interface{}, 0, len(arts))
@@ -101,7 +146,7 @@ func (articleRepo) BatchInsert(db article.Execer, arts []*article.Article) ([]*a
 		values = append(values, art.ArtID, art.Name, art.Stock)
 	}
 
-	stmt := fmt.Sprintf("INSERT INTO articles (art_id, name, stock) VALUES %s RETURNING id, art_id, name, stock", strings.Join(pHolders, ", "))
+	stmt := fmt.Sprintf("INSERT INTO articles(art_id, name, stock) VALUES %s RETURNING id, art_id, name, stock", strings.Join(pHolders, ", "))
 
 	rows, err := db.Query(stmt, values...)
 	if err != nil {
@@ -122,7 +167,7 @@ func (articleRepo) BatchInsert(db article.Execer, arts []*article.Article) ([]*a
 	return inserted, nil
 }
 
-func (articleRepo) AdjustQuantities(db article.Execer, t article.QtyAdjustmentKind, changes []*article.QtyAdjustment) error {
+func (articleRepo) AdjustQuantities(db article.Executor, t article.QtyAdjustmentKind, changes []*article.QtyAdjustment) error {
 	var op errors.Op = "articleRepo.adjustQuantities"
 
 	pHolders := make([]string, 0, len(changes))
@@ -160,7 +205,7 @@ func (articleRepo) AdjustQuantities(db article.Execer, t article.QtyAdjustmentKi
 	return nil
 }
 
-func (articleRepo) FindAll(db article.Execer, bb *[]article.ArtID) ([]*article.Article, error) {
+func (articleRepo) FindAll(db article.Executor, bb *[]article.ArtID) ([]*article.Article, error) {
 	var op errors.Op = "articleRepo.findAll"
 
 	var artIDQuery string
@@ -178,6 +223,7 @@ func (articleRepo) FindAll(db article.Execer, bb *[]article.ArtID) ([]*article.A
 		SELECT id, name, art_id, stock
 		FROM articles 
 		%s
+		ORDER BY art_id
 	`, artIDQuery)
 
 	rows, err := db.Query(stmt, values...)
