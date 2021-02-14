@@ -2,6 +2,8 @@
 
 A warehouse software that tracks the stock information of articles. Product stocks are calculated per request based on the required articles and their quantities.
 
+![Diagram](diagram.png)
+
 ## How to Run
 ```
 docker-compose up -d
