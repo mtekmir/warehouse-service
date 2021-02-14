@@ -1,6 +1,7 @@
 package postgres
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"strings"
@@ -11,7 +12,7 @@ import (
 
 type productRepo struct{}
 
-func (productRepo) ExistingProductsMap(db product.Executor, bb []*product.Barcode) (map[product.Barcode]product.ID, error) {
+func (productRepo) ExistingProductsMap(ctx context.Context, db product.Executor, bb []*product.Barcode) (map[product.Barcode]product.ID, error) {
 	var op errors.Op = "productRepo.existingProductsMap"
 
 	pHolders := make([]string, 0, len(bb))
@@ -22,7 +23,7 @@ func (productRepo) ExistingProductsMap(db product.Executor, bb []*product.Barcod
 	}
 
 	stmt := fmt.Sprintf(`SELECT id, barcode FROM products WHERE barcode IN (%s)`, strings.Join(pHolders, ","))
-	rows, err := db.Query(stmt, values...)
+	rows, err := db.QueryContext(ctx, stmt, values...)
 	if err != nil {
 		return nil, errors.E(op, err)
 	}
@@ -41,7 +42,7 @@ func (productRepo) ExistingProductsMap(db product.Executor, bb []*product.Barcod
 	return m, nil
 }
 
-func (productRepo) FindAll(db product.Executor, ff *product.Filters) ([]*product.StockInfo, error) {
+func (productRepo) FindAll(ctx context.Context, db product.Executor, ff *product.Filters) ([]*product.StockInfo, error) {
 	var op errors.Op = "productRepo.findAll"
 
 	filterQueries := make([]string, 0, 2)
@@ -74,7 +75,7 @@ func (productRepo) FindAll(db product.Executor, ff *product.Filters) ([]*product
 		%s
 	`, filters)
 
-	rows, err := db.Query(stmt, values...)
+	rows, err := db.QueryContext(ctx, stmt, values...)
 	if err != nil {
 		return nil, errors.E(op, err)
 	}
@@ -117,7 +118,7 @@ func (productRepo) FindAll(db product.Executor, ff *product.Filters) ([]*product
 	return res, nil
 }
 
-func (productRepo) BatchInsert(db product.Executor, pp []*product.Product) ([]*product.Product, error) {
+func (productRepo) BatchInsert(ctx context.Context, db product.Executor, pp []*product.Product) ([]*product.Product, error) {
 	var op errors.Op = "productRepo.batchInsert"
 
 	values := make([]interface{}, 0, len(pp))
@@ -133,7 +134,7 @@ func (productRepo) BatchInsert(db product.Executor, pp []*product.Product) ([]*p
 
 	stmt := fmt.Sprintf("INSERT INTO products (barcode, name) VALUES %s RETURNING id, barcode, name", strings.Join(pHolders, ", "))
 
-	rows, err := db.Query(stmt, values...)
+	rows, err := db.QueryContext(ctx, stmt, values...)
 	if err != nil {
 		return nil, errors.E(op, err)
 	}
@@ -152,7 +153,7 @@ func (productRepo) BatchInsert(db product.Executor, pp []*product.Product) ([]*p
 	return inserted, nil
 }
 
-func (productRepo) InsertProductArticles(db product.Executor, arts []*product.ArticleRow) error {
+func (productRepo) InsertProductArticles(ctx context.Context, db product.Executor, arts []*product.ArticleRow) error {
 	var op errors.Op = "productRepo.insertProductArticles"
 
 	pHolders := make([]string, 0, len(arts))
@@ -170,7 +171,7 @@ func (productRepo) InsertProductArticles(db product.Executor, arts []*product.Ar
 		INSERT INTO product_articles (amount, product_id, article_id) VALUES %s
 	`, strings.Join(pHolders, ", "))
 
-	_, err := db.Exec(stmt, values...)
+	_, err := db.ExecContext(ctx, stmt, values...)
 	if err != nil {
 		return errors.E(op, err)
 	}

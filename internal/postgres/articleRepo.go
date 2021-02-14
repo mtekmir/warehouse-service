@@ -1,6 +1,7 @@
 package postgres
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -10,7 +11,7 @@ import (
 
 type articleRepo struct{}
 
-func (r articleRepo) Import(db article.Executor, aa []*article.Article) ([]*article.Article, error) {
+func (r articleRepo) Import(ctx context.Context, db article.Executor, aa []*article.Article) ([]*article.Article, error) {
 	var op errors.Op = "articleRepo.import"
 
 	// Handle duplicates
@@ -41,7 +42,7 @@ func (r articleRepo) Import(db article.Executor, aa []*article.Article) ([]*arti
 	for _, r := range rows {
 		artIDs = append(artIDs, article.ArtID(r.ArtID))
 	}
-	existing, err := r.FindAll(db, &artIDs)
+	existing, err := r.FindAll(ctx, db, &artIDs)
 	if err != nil {
 		return nil, errors.E(op, err)
 	}
@@ -68,7 +69,7 @@ func (r articleRepo) Import(db article.Executor, aa []*article.Article) ([]*arti
 		}
 
 		if len(artToCreate) > 0 {
-			arts, err := r.BatchInsert(db, artToCreate)
+			arts, err := r.BatchInsert(ctx, db, artToCreate)
 			if err != nil {
 				createdC <- &result{Err: err}
 				return
@@ -81,9 +82,9 @@ func (r articleRepo) Import(db article.Executor, aa []*article.Article) ([]*arti
 	}()
 
 	//
-	// Update existing articles
+	// Update quantities of existing articles
 	updatedC := make(chan *result)
-	go func() {
+	go func(db article.Executor) {
 		updated := make([]*article.Article, 0, len(existing))
 
 		adjustments := make([]*article.QtyAdjustment, 0, len(existing))
@@ -97,7 +98,7 @@ func (r articleRepo) Import(db article.Executor, aa []*article.Article) ([]*arti
 		}
 
 		if len(adjustments) > 0 {
-			if err := r.AdjustQuantities(db, article.QtyAdjustmentAdd, adjustments); err != nil {
+			if err := r.AdjustQuantities(ctx, db, article.QtyAdjustmentAdd, adjustments); err != nil {
 				updatedC <- &result{Err: err}
 				return
 			}
@@ -106,12 +107,15 @@ func (r articleRepo) Import(db article.Executor, aa []*article.Article) ([]*arti
 		}
 
 		updatedC <- &result{}
-	}()
+	}(db)
 
 	results := make([]*article.Article, 0, len(rows))
 
 	for i := 0; i < 2; i++ {
 		select {
+		case <-ctx.Done():
+			fmt.Println(ctx.Err())
+			return nil, errors.E(op, ctx.Err())
 		case res := <-createdC:
 			if res.Err != nil {
 				return nil, errors.E(op, res.Err)
@@ -132,7 +136,7 @@ func (r articleRepo) Import(db article.Executor, aa []*article.Article) ([]*arti
 	return results, nil
 }
 
-func (articleRepo) BatchInsert(db article.Executor, arts []*article.Article) ([]*article.Article, error) {
+func (articleRepo) BatchInsert(ctx context.Context, db article.Executor, arts []*article.Article) ([]*article.Article, error) {
 	var op errors.Op = "articleRepo.batchInsert"
 
 	values := make([]interface{}, 0, len(arts))
@@ -148,7 +152,7 @@ func (articleRepo) BatchInsert(db article.Executor, arts []*article.Article) ([]
 
 	stmt := fmt.Sprintf("INSERT INTO articles(art_id, name, stock) VALUES %s RETURNING id, art_id, name, stock", strings.Join(pHolders, ", "))
 
-	rows, err := db.Query(stmt, values...)
+	rows, err := db.QueryContext(ctx, stmt, values...)
 	if err != nil {
 		return nil, errors.E(op, err)
 	}
@@ -167,7 +171,7 @@ func (articleRepo) BatchInsert(db article.Executor, arts []*article.Article) ([]
 	return inserted, nil
 }
 
-func (articleRepo) AdjustQuantities(db article.Executor, t article.QtyAdjustmentKind, changes []*article.QtyAdjustment) error {
+func (articleRepo) AdjustQuantities(ctx context.Context, db article.Executor, t article.QtyAdjustmentKind, changes []*article.QtyAdjustment) error {
 	var op errors.Op = "articleRepo.adjustQuantities"
 
 	pHolders := make([]string, 0, len(changes))
@@ -191,7 +195,7 @@ func (articleRepo) AdjustQuantities(db article.Executor, t article.QtyAdjustment
 		WHERE a.id = v.id
 	`, adjustment, strings.Join(pHolders, ", "))
 
-	res, err := db.Exec(stmt, values...)
+	res, err := db.ExecContext(ctx, stmt, values...)
 	if err != nil {
 		return errors.E(op, err)
 	}
@@ -205,7 +209,7 @@ func (articleRepo) AdjustQuantities(db article.Executor, t article.QtyAdjustment
 	return nil
 }
 
-func (articleRepo) FindAll(db article.Executor, bb *[]article.ArtID) ([]*article.Article, error) {
+func (articleRepo) FindAll(ctx context.Context, db article.Executor, bb *[]article.ArtID) ([]*article.Article, error) {
 	var op errors.Op = "articleRepo.findAll"
 
 	var artIDQuery string
@@ -226,7 +230,7 @@ func (articleRepo) FindAll(db article.Executor, bb *[]article.ArtID) ([]*article
 		ORDER BY art_id
 	`, artIDQuery)
 
-	rows, err := db.Query(stmt, values...)
+	rows, err := db.QueryContext(ctx, stmt, values...)
 	if err != nil {
 		return nil, errors.E(op, err)
 	}

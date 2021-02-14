@@ -1,6 +1,7 @@
 package test
 
 import (
+	"context"
 	"database/sql"
 	"strings"
 	"testing"
@@ -25,6 +26,18 @@ func SetupTX(t *testing.T) (tx *sql.Tx, dbTidy func()) {
 	db, err := sql.Open("pgx", conf.DBURL)
 	if err != nil {
 		t.Fatalf("Failed to initialize db. Err: %s", err.Error())
+	}
+
+	// create test schema
+	_, err = db.Exec("CREATE SCHEMA IF NOT EXISTS test")
+	if err != nil {
+		t.Fatalf("Error while creating the schema. Err: %s", err.Error())
+	}
+
+	// use schema
+	_, err = db.Exec("SET search_path TO test")
+	if err != nil {
+		t.Fatalf("Error while switching to schema. Err: %s", err.Error())
 	}
 
 	tx, err = db.Begin()
@@ -83,7 +96,7 @@ func SetupDB(t *testing.T) (*sql.DB, func()) {
 // CreateArticleTable creates articles table for tests.
 func CreateArticleTable(t *testing.T, db article.Executor) {
 	t.Helper()
-	_, err := db.Exec(`
+	_, err := db.ExecContext(context.Background(), `
 		create table if not exists articles(
 			id bigserial unique primary key,
 			art_id varchar unique not null,

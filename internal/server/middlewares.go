@@ -1,9 +1,10 @@
 package server
 
 import (
-	"log"
 	"net/http"
 	"strings"
+
+	"github.com/sirupsen/logrus"
 )
 
 func corsMiddleware(clientURL string) func(http.Handler) http.Handler {
@@ -26,18 +27,20 @@ func corsMiddleware(clientURL string) func(http.Handler) http.Handler {
 	}
 }
 
-func noPanicMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		defer func() {
-			err := recover()
-			if err != nil {
-				log.Printf("An unexpected error occurred: %v\n", err)
-				w.WriteHeader(500)
-				w.Write([]byte(`{"message": "Something went wrong."}`))
-			}
-		}()
-		next.ServeHTTP(w, r)
-	})
+func noPanicMiddleware(log *logrus.Logger) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			defer func() {
+				err := recover()
+				if err != nil {
+					log.Printf("An unexpected error occurred: %v\n", err)
+					w.WriteHeader(500)
+					w.Write([]byte(`{"message": "Something went wrong."}`))
+				}
+			}()
+			next.ServeHTTP(w, r)
+		})
+	}
 }
 
 func applyMiddlewares(h http.Handler, mm ...func(http.Handler) http.Handler) http.Handler {

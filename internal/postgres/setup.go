@@ -2,14 +2,14 @@ package postgres
 
 import (
 	"database/sql"
-	"log"
 
 	// Postgres driver
 	_ "github.com/jackc/pgx/v4/stdlib"
+	"github.com/sirupsen/logrus"
 )
 
 // Setup sets up the db runs migrations and returns a func to close it.
-func Setup(dbURL, migrationsPath string) (*sql.DB, func(), error) {
+func Setup(log *logrus.Logger, dbURL, migrationsPath string) (*sql.DB, func(), error) {
 	db, err := sql.Open("pgx", dbURL)
 	if err != nil {
 		return nil, nil, err
@@ -18,7 +18,7 @@ func Setup(dbURL, migrationsPath string) (*sql.DB, func(), error) {
 
 	dbTidy := func() { db.Close() }
 
-	if err := Migrate(db, migrationsPath); err != nil {
+	if err := Migrate(log, db, migrationsPath); err != nil {
 		return nil, dbTidy, err
 	}
 

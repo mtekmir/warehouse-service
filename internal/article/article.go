@@ -65,9 +65,3 @@ type QtyAdjustment struct {
 	ID  ID
 	Qty int
 }
-
-// ImportSummary is the response type of article import.
-type ImportSummary struct {
-	Updated []*Article `json:"updated"`
-	Created []*Article `json:"created"`
-}

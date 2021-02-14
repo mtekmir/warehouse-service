@@ -4,12 +4,13 @@ import (
 	"database/sql"
 	"errors"
 	"io/ioutil"
-	"log"
 	"os"
 	"path"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/sirupsen/logrus"
 )
 
 type migration struct {
@@ -20,7 +21,7 @@ type migration struct {
 }
 
 // Migrate runs db migrations.
-func Migrate(d *sql.DB, migrationsPath string) error {
+func Migrate(log *logrus.Logger, d *sql.DB, migrationsPath string) error {
 	mm, err := parseMigrations(migrationsPath)
 	if err != nil {
 		return err
@@ -41,7 +42,7 @@ func Migrate(d *sql.DB, migrationsPath string) error {
 	}
 
 	for _, m := range mm {
-		err = executeMigration(d, m)
+		err = executeMigration(log, d, m)
 		if err != nil {
 			return err
 		}
@@ -131,7 +132,7 @@ func parseMigration(migrationsPath, filename string) (migration, error) {
 	return m, nil
 }
 
-func executeMigration(d *sql.DB, m migration) error {
+func executeMigration(log *logrus.Logger, d *sql.DB, m migration) error {
 	log.Println("Executing migration", m.filename)
 	_, err := d.Exec(m.script)
 	if err != nil {

@@ -21,7 +21,7 @@ func (s *Server) handleImportProducts(w http.ResponseWriter, r *http.Request) er
 		return errors.E(op, err)
 	}
 
-	if err := s.productService.Import(b.Products); err != nil {
+	if err := s.productService.Import(r.Context(), b.Products); err != nil {
 		return errors.E(op, err)
 	}
 
@@ -39,7 +39,7 @@ func (s *Server) handleGetProducts(w http.ResponseWriter, r *http.Request) error
 		}
 	}
 
-	res, err := s.productService.FindAll(ff)
+	res, err := s.productService.FindAll(r.Context(), ff)
 	if err != nil {
 		return errors.E(op, err)
 	}
@@ -55,7 +55,7 @@ func (s *Server) handleGetProduct(w http.ResponseWriter, r *http.Request) error 
 		return errors.E(op, err)
 	}
 
-	p, err := s.productService.Find(product.ID(ID))
+	p, err := s.productService.Find(r.Context(), product.ID(ID))
 	if err != nil {
 		return errors.E(op, err)
 	}
@@ -77,7 +77,7 @@ func (s *Server) handleRemoveProduct(w http.ResponseWriter, r *http.Request) err
 
 	json.NewDecoder(r.Body).Decode(&body)
 
-	p, err := s.productService.Remove(product.ID(ID), body.Qty)
+	p, err := s.productService.Remove(r.Context(), product.ID(ID), body.Qty)
 	if err != nil {
 		return errors.E(op, err)
 	}

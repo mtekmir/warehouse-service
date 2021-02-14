@@ -18,7 +18,7 @@ func (s *Server) handleImportArticles(w http.ResponseWriter, r *http.Request) er
 		return errors.E(op, errors.Invalid, "Unable to unmarshal json. Invalid format", err)
 	}
 
-	res, err := s.articleService.Import(b.Inventory)
+	res, err := s.articleService.Import(r.Context(), b.Inventory)
 	if err != nil {
 		return errors.E(op, err)
 	}

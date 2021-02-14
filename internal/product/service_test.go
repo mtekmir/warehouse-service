@@ -1,6 +1,7 @@
 package product_test
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -9,20 +10,23 @@ import (
 	"github.com/mtekmir/warehouse-service/internal/postgres"
 	"github.com/mtekmir/warehouse-service/internal/product"
 	"github.com/mtekmir/warehouse-service/test"
+	"github.com/sirupsen/logrus"
 )
 
 func TestImportProducts(t *testing.T) {
 	db, dbTidy := test.SetupDB(t)
 	defer dbTidy()
+	log := logrus.New()
 
 	test.CreateProductTables(t, db)
 
 	ar := postgres.NewArticleRepo()
 	pr := postgres.NewProductRepo()
-	s := product.NewService(db, pr, ar)
+	s := product.NewService(log, db, pr, ar)
 	pp := createArticles(2)
+	ctx := context.Background()
 
-	err := s.Import(pp)
+	err := s.Import(ctx, pp)
 	if err != nil {
 		t.Errorf("Unable to import products. %v", err)
 	}
@@ -32,7 +36,7 @@ func TestImportProducts(t *testing.T) {
 		{ID: 2, Name: "Article_1_2", ArtID: "Art_ArtID_1_2", Stock: 5},
 	}
 
-	foundArts, err := ar.FindAll(db, nil)
+	foundArts, err := ar.FindAll(ctx, db, nil)
 	if err != nil {
 		t.Errorf("Unable to find all articles. %v", err)
 	}
@@ -48,7 +52,7 @@ func TestImportProducts(t *testing.T) {
 		}},
 	}
 
-	foundPP, err := pr.FindAll(db, &product.Filters{})
+	foundPP, err := pr.FindAll(ctx, db, &product.Filters{})
 	if err != nil {
 		t.Errorf("Unable to find products. %v", err)
 	}
@@ -60,11 +64,15 @@ func TestRemove(t *testing.T) {
 	db, dbTidy := test.SetupDB(t)
 	defer dbTidy()
 
+	log := logrus.New()
+
 	test.CreateProductTables(t, db)
 
 	ar := postgres.NewArticleRepo()
 	pr := postgres.NewProductRepo()
-	s := product.NewService(db, pr, ar)
+	s := product.NewService(log, db, pr, ar)
+
+	ctx := context.Background()
 
 	prod := &product.Product{Barcode: "barcode", Name: "name", Articles: []*product.Article{
 		{ArtID: "art_id1", Name: "name_1", Amount: 5},
@@ -72,11 +80,11 @@ func TestRemove(t *testing.T) {
 		{ArtID: "art_id3", Name: "name_3", Amount: 2},
 	}}
 
-	if err := s.Import([]*product.Product{prod}); err != nil {
+	if err := s.Import(ctx, []*product.Product{prod}); err != nil {
 		t.Errorf("Unable to import products. %v", err)
 	}
 
-	foundP, err := s.Find(1)
+	foundP, err := s.Find(ctx, 1)
 	if err != nil {
 		t.Errorf("Unable to find products. %v", err)
 	}
@@ -91,11 +99,11 @@ func TestRemove(t *testing.T) {
 
 	test.Compare(t, "stockInfo", expectedStockInfo, foundP, cmpopts.IgnoreFields(product.ArticleStock{}, "ID"))
 
-	if _, err := s.Remove(1, 2); err == nil {
+	if _, err := s.Remove(ctx, 1, 2); err == nil {
 		t.Errorf("Should return an error when there is not enough stock")
 	}
 
-	stock, err := s.Remove(1, 1)
+	stock, err := s.Remove(ctx, 1, 1)
 	if err != nil {
 		t.Errorf("Unable to remove a product. %v", err)
 	}
@@ -110,7 +118,7 @@ func TestRemove(t *testing.T) {
 
 	test.Compare(t, "stockInfo", expectedStockInfo, stock, cmpopts.IgnoreFields(product.ArticleStock{}, "ID"))
 
-	foundP, err = s.Find(1)
+	foundP, err = s.Find(ctx, 1)
 	if err != nil {
 		t.Errorf("Unable to find products. %v", err)
 	}

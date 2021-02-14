@@ -1,6 +1,7 @@
 package postgres_test
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -15,10 +16,11 @@ func TestBatchInsert(t *testing.T) {
 
 	test.CreateArticleTable(t, db)
 	r := postgres.NewArticleRepo()
+	ctx := context.Background()
 
 	aa := createArticles(3)
 
-	arts, err := r.BatchInsert(db, aa)
+	arts, err := r.BatchInsert(ctx, db, aa)
 	if err != nil {
 		t.Errorf("Unable to batch insert articles. %v", err)
 	}
@@ -38,15 +40,16 @@ func TestFindAll(t *testing.T) {
 
 	test.CreateArticleTable(t, db)
 	r := postgres.NewArticleRepo()
+	ctx := context.Background()
 
 	aa := createArticles(6)
 
-	_, err := r.BatchInsert(db, aa)
+	_, err := r.BatchInsert(ctx, db, aa)
 	if err != nil {
 		t.Errorf("Unable to batch insert articles. %v", err)
 	}
 
-	found, err := r.FindAll(db, &[]article.ArtID{"ArtID_1", "ArtID_2", "ArtID_3"})
+	found, err := r.FindAll(ctx, db, &[]article.ArtID{"ArtID_1", "ArtID_2", "ArtID_3"})
 	if err != nil {
 		t.Errorf("Unable to find articles. %v", err)
 	}
@@ -66,20 +69,21 @@ func TestAdjustQuantities(t *testing.T) {
 
 	test.CreateArticleTable(t, db)
 	r := postgres.NewArticleRepo()
+	ctx := context.Background()
 
 	aa := createArticles(3)
 
-	_, err := r.BatchInsert(db, aa)
+	_, err := r.BatchInsert(ctx, db, aa)
 	if err != nil {
 		t.Errorf("Unable to batch insert articles. %v", err)
 	}
 
-	err = r.AdjustQuantities(db, article.QtyAdjustmentAdd, []*article.QtyAdjustment{{ID: 1, Qty: 10}, {ID: 2, Qty: 20}})
+	err = r.AdjustQuantities(ctx, db, article.QtyAdjustmentAdd, []*article.QtyAdjustment{{ID: 1, Qty: 10}, {ID: 2, Qty: 20}})
 	if err != nil {
 		t.Errorf("Unable to adjust quantities of articles. %v", err)
 	}
 
-	found, err := r.FindAll(db, nil)
+	found, err := r.FindAll(ctx, db, nil)
 	if err != nil {
 		t.Errorf("Unable to find articles. %v", err)
 	}
@@ -92,12 +96,12 @@ func TestAdjustQuantities(t *testing.T) {
 
 	test.Compare(t, "article", expectedArts, found)
 
-	err = r.AdjustQuantities(db, article.QtyAdjustmentSubtract, []*article.QtyAdjustment{{ID: 2, Qty: 2}, {ID: 3, Qty: 3}})
+	err = r.AdjustQuantities(ctx, db, article.QtyAdjustmentSubtract, []*article.QtyAdjustment{{ID: 2, Qty: 2}, {ID: 3, Qty: 3}})
 	if err != nil {
 		t.Errorf("Unable to adjust quantities of articles. %v", err)
 	}
 
-	found, err = r.FindAll(db, nil)
+	found, err = r.FindAll(ctx, db, nil)
 	if err != nil {
 		t.Errorf("Unable to find articles. %v", err)
 	}
@@ -110,12 +114,12 @@ func TestAdjustQuantities(t *testing.T) {
 
 	test.Compare(t, "article", expectedArts, found)
 
-	err = r.AdjustQuantities(db, article.QtyAdjustmentReplace, []*article.QtyAdjustment{{ID: 1, Qty: 5}, {ID: 2, Qty: 10}})
+	err = r.AdjustQuantities(ctx, db, article.QtyAdjustmentReplace, []*article.QtyAdjustment{{ID: 1, Qty: 5}, {ID: 2, Qty: 10}})
 	if err != nil {
 		t.Errorf("Unable to adjust quantities of articles. %v", err)
 	}
 
-	found, err = r.FindAll(db, nil)
+	found, err = r.FindAll(ctx, db, nil)
 	if err != nil {
 		t.Errorf("Unable to find articles. %v", err)
 	}
@@ -137,8 +141,9 @@ func TestImportArticles(t *testing.T) {
 	r := postgres.NewArticleRepo()
 
 	aa := createArticles(3)
+	ctx := context.Background()
 
-	imported, err := r.Import(db, aa)
+	imported, err := r.Import(ctx, db, aa)
 	if err != nil {
 		t.Errorf("Unable to import articles. %v", err)
 	}
@@ -151,7 +156,7 @@ func TestImportArticles(t *testing.T) {
 
 	test.Compare(t, "article", expectedArts, imported)
 
-	imported, err = r.Import(db, aa)
+	imported, err = r.Import(ctx, db, aa)
 	if err != nil {
 		t.Errorf("Unable to import articles. %v", err)
 	}
@@ -164,7 +169,7 @@ func TestImportArticles(t *testing.T) {
 
 	test.Compare(t, "article", expectedArts, imported)
 
-	found, err := r.FindAll(db, nil)
+	found, err := r.FindAll(ctx, db, nil)
 	if err != nil {
 		t.Errorf("Unable to find all articles. %v", err)
 	}
@@ -180,8 +185,9 @@ func TestImportArticles_WithExisting(t *testing.T) {
 	r := postgres.NewArticleRepo()
 
 	aa := createArticles(5)
+	ctx := context.Background()
 
-	imported, err := r.Import(db, aa[:3])
+	imported, err := r.Import(ctx, db, aa[:3])
 	if err != nil {
 		t.Errorf("Unable to import articles. %v", err)
 	}
@@ -194,7 +200,7 @@ func TestImportArticles_WithExisting(t *testing.T) {
 
 	test.Compare(t, "article", expectedArts, imported)
 
-	imported, err = r.Import(db, aa)
+	imported, err = r.Import(ctx, db, aa)
 	if err != nil {
 		t.Errorf("Unable to import articles. %v", err)
 	}
@@ -209,7 +215,7 @@ func TestImportArticles_WithExisting(t *testing.T) {
 
 	test.Compare(t, "article", expectedArts, imported)
 
-	found, err := r.FindAll(db, nil)
+	found, err := r.FindAll(ctx, db, nil)
 	if err != nil {
 		t.Errorf("Unable to find articles. %v", err)
 	}

@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/mtekmir/warehouse-service/test"
+	"github.com/sirupsen/logrus"
 )
 
 func TestParseMigration(t *testing.T) {
@@ -109,6 +110,8 @@ func TestExecuteMigration(t *testing.T) {
 	t.Parallel()
 	db, dbTidy := test.SetupDB(t)
 	defer dbTidy()
+	log := logrus.New()
+
 	err := createVersTable(db)
 	if err != nil {
 		t.Fatalf("Error while creating schema_version table. Err: %s", err.Error())
@@ -119,7 +122,7 @@ func TestExecuteMigration(t *testing.T) {
 		t.Fatalf("Error while parsing test migration files. Err: %s", err.Error())
 	}
 	for _, m := range mm {
-		err = executeMigration(db, m)
+		err = executeMigration(log, db, m)
 		if err != nil {
 			t.Fatalf("Error while executing. Err: %s", err.Error())
 		}
@@ -212,12 +215,13 @@ func TestMigrationsToExecute(t *testing.T) {
 func TestMigrate(t *testing.T) {
 	db, dbTidy := test.SetupDB(t)
 	defer dbTidy()
-	err := Migrate(db, "nonexistent")
+	log := logrus.New()
+	err := Migrate(log, db, "nonexistent")
 	if err == nil {
 		t.Errorf("Expected to get ENOTFOUND. Got nil.")
 	}
 
-	err = Migrate(db, "testdata")
+	err = Migrate(log, db, "testdata")
 
 	tablesToCheck := []string{"products", "articles"}
 	for _, n := range tablesToCheck {

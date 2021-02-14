@@ -67,5 +67,4 @@ if __name__ == "__main__":
     if len(args) == 1:
         gen(5)
     else:
-        print(args[1])
         gen(int(args[1]))

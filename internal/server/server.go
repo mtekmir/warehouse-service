@@ -2,13 +2,13 @@ package server
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"regexp"
 	"time"
 
 	"github.com/mtekmir/warehouse-service/internal/article"
 	"github.com/mtekmir/warehouse-service/internal/product"
+	"github.com/sirupsen/logrus"
 )
 
 // Server is an abstraction that holds the dependencies for the http server
@@ -16,6 +16,7 @@ import (
 type Server struct {
 	productService *product.Service
 	articleService *article.Service
+	log            *logrus.Logger
 }
 
 var productPath = regexp.MustCompile(`/products/([0-9]+)`)
@@ -30,26 +31,26 @@ func (s *Server) router(w http.ResponseWriter, r *http.Request) {
 	switch {
 
 	case r.Method == http.MethodGet && r.URL.Path == getProductsPath:
-		handler(s.handleGetProducts).ServeHTTP(w, r)
+		handler(s.handleGetProducts).ServeHTTP(s.log, w, r)
 
 	case r.Method == http.MethodGet && productPath.MatchString(r.URL.Path):
-		handler(s.handleGetProduct).ServeHTTP(w, r)
+		handler(s.handleGetProduct).ServeHTTP(s.log, w, r)
 
 	case r.Method == http.MethodPost && productPath.MatchString(r.URL.Path):
-		handler(s.handleRemoveProduct).ServeHTTP(w, r)
+		handler(s.handleRemoveProduct).ServeHTTP(s.log, w, r)
 
 	case r.Method == http.MethodPost && r.URL.Path == importProductsPath:
-		handler(s.handleImportProducts).ServeHTTP(w, r)
+		handler(s.handleImportProducts).ServeHTTP(s.log, w, r)
 
 	case r.Method == http.MethodPost && r.URL.Path == importArticlesPath:
-		handler(s.handleImportArticles).ServeHTTP(w, r)
+		handler(s.handleImportArticles).ServeHTTP(s.log, w, r)
 
 	}
 }
 
 // Start starts the server. Server sets up the routes and starts listening.
 func (s *Server) Start(port string, wTimeout, rTimeout, idleTimeout time.Duration) error {
-	http.Handle("/", applyMiddlewares(http.HandlerFunc(s.router), noPanicMiddleware, corsMiddleware("*")))
+	http.Handle("/", applyMiddlewares(http.HandlerFunc(s.router), noPanicMiddleware(s.log), corsMiddleware("*")))
 
 	srv := http.Server{
 		Addr:         fmt.Sprintf(":%s", port),
@@ -62,8 +63,9 @@ func (s *Server) Start(port string, wTimeout, rTimeout, idleTimeout time.Duratio
 }
 
 // NewServer returns a new server instance with required dependencies.
-func NewServer(ps *product.Service, as *article.Service) *Server {
+func NewServer(l *logrus.Logger, ps *product.Service, as *article.Service) *Server {
 	return &Server{
+		log:            l,
 		productService: ps,
 		articleService: as,
 	}
@@ -78,17 +80,17 @@ type Error interface {
 	Body() []byte
 }
 
-func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h handler) ServeHTTP(l *logrus.Logger, w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	if err := h(w, r); err != nil {
 		e, ok := err.(Error)
 		if !ok {
-			log.Printf("An unexpected error occurred: %v\n", err)
+			l.Printf("An unexpected error occurred: %v\n", err)
 			w.WriteHeader(500)
 			w.Write([]byte(`{"message": "Something went wrong."}`))
 			return
 		}
-		log.Print(e.Error())
+		l.Print(e.Error())
 		w.WriteHeader(e.Code())
 		w.Write(e.Body())
 	}
