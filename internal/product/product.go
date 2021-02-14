@@ -63,7 +63,7 @@ func (a *Article) UnmarshalJSON(data []byte) error {
 
 	type Alias Article
 	j := &struct {
-		Stock string `json:"amount_of"`
+		ReqAmount string `json:"amount_of"`
 		*Alias
 	}{
 		Alias: (*Alias)(a),
@@ -73,9 +73,13 @@ func (a *Article) UnmarshalJSON(data []byte) error {
 		return errors.E(op, err)
 	}
 
-	s, err := strconv.Atoi(j.Stock)
+	s, err := strconv.Atoi(j.ReqAmount)
 	if err != nil {
 		return errors.E(op, errors.Invalid, err)
+	}
+
+	if s == 0 {
+		return errors.E(op, errors.Invalid, "Amount must be bigger than 0")
 	}
 
 	a.Amount = s

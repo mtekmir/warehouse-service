@@ -66,7 +66,7 @@ func (s *Server) handleGetProduct(w http.ResponseWriter, r *http.Request) error 
 func (s *Server) handleRemoveProduct(w http.ResponseWriter, r *http.Request) error {
 	var op errors.Op = "reqHandlers.handleRemoveProduct"
 
-	ID, err := strconv.Atoi(string(productPath.FindSubmatch([]byte(r.URL.Path))[1]))
+	ID, err := strconv.Atoi(string(removeProductsPath.FindSubmatch([]byte(r.URL.Path))[1]))
 	if err != nil {
 		return errors.E(op, err)
 	}

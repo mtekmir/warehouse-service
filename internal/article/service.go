@@ -32,7 +32,7 @@ type Service struct {
 
 // Import imports the articles into the DB. New rows will be created for the non-existing
 // articles and quantities of existing articles will be updated. Returns the new articles and
-// updated articles.
+// updated articles. Handles duplicate items, quantities of duplicate items will be summed up.
 func (s *Service) Import(ctx context.Context, rows []*Article) ([]*Article, error) {
 	var op errors.Op = "articleService.import"
 	s.log.Printf("Importing %d articles", len(rows))

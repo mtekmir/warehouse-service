@@ -11,6 +11,7 @@ import (
 
 type articleRepo struct{}
 
+// Imports articles to db. Create and update operations run on separate goroutines.
 func (r articleRepo) Import(ctx context.Context, db article.Executor, aa []*article.Article) ([]*article.Article, error) {
 	var op errors.Op = "articleRepo.import"
 
@@ -114,7 +115,6 @@ func (r articleRepo) Import(ctx context.Context, db article.Executor, aa []*arti
 	for i := 0; i < 2; i++ {
 		select {
 		case <-ctx.Done():
-			fmt.Println(ctx.Err())
 			return nil, errors.E(op, ctx.Err())
 		case res := <-createdC:
 			if res.Err != nil {
@@ -136,6 +136,7 @@ func (r articleRepo) Import(ctx context.Context, db article.Executor, aa []*arti
 	return results, nil
 }
 
+// BatchInsert inserts an article slice into db. Does not handle duplicates.
 func (articleRepo) BatchInsert(ctx context.Context, db article.Executor, arts []*article.Article) ([]*article.Article, error) {
 	var op errors.Op = "articleRepo.batchInsert"
 
@@ -171,6 +172,7 @@ func (articleRepo) BatchInsert(ctx context.Context, db article.Executor, arts []
 	return inserted, nil
 }
 
+// AdjustQuantities is for updating quantities of articles.
 func (articleRepo) AdjustQuantities(ctx context.Context, db article.Executor, t article.QtyAdjustmentKind, changes []*article.QtyAdjustment) error {
 	var op errors.Op = "articleRepo.adjustQuantities"
 

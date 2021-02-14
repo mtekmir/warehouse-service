@@ -20,7 +20,8 @@ type migration struct {
 	script      string
 }
 
-// Migrate runs db migrations.
+// Migrate runs db migrations. Applied db migrations will be stored in 
+// schema_version table. If no new migrations it doesn't do anything.
 func Migrate(log *logrus.Logger, d *sql.DB, migrationsPath string) error {
 	mm, err := parseMigrations(migrationsPath)
 	if err != nil {

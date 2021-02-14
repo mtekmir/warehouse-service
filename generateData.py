@@ -41,7 +41,7 @@ def gen_articles(n):
 
 
 def change_stock_to_amount(art):
-    art["amount_of"] = art["stock"]
+    art["amount_of"] = randrange(1, 5)
     del art["stock"]
     return art
 

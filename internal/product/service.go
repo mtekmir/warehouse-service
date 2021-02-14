@@ -68,7 +68,7 @@ func (s *Service) Find(ctx context.Context, ID ID) (*StockInfo, error) {
 	return pp[0], nil
 }
 
-// Remove removes the articles of the product from the repository and returns
+// Remove subtracts the quantities of the articles of the product from the repository and returns
 // the updated stock information of the product.
 func (s *Service) Remove(ctx context.Context, ID ID, qty int) (*StockInfo, error) {
 	var op errors.Op = "productService.remove"
@@ -100,6 +100,8 @@ func (s *Service) Remove(ctx context.Context, ID ID, qty int) (*StockInfo, error
 }
 
 // Import products. Handles duplicate products. Imports the articles as well.
+// If the product exists, it only updates the quantities of the articles.
+// If it's a new product, it adds the product and associates the articles with it.
 func (s *Service) Import(ctx context.Context, rows []*Product) error {
 	var op errors.Op = "productService.import"
 	s.log.Printf("Importing %d products", len(rows))

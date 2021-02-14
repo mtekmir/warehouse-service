@@ -10,9 +10,6 @@ import (
 // ID is the internal ID of an article.
 type ID int
 
-// Barcode is the type of the article.
-type Barcode string
-
 // ArtID is the external ID of an article.
 type ArtID string
 
@@ -50,17 +47,17 @@ func (a *Article) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// QtyAdjustmentKind is the type of qty adjustment of productRepo.AdjustQuantities method
+// QtyAdjustmentKind is the type of qty adjustment of articleRepo.AdjustQuantities method
 type QtyAdjustmentKind int
 
-// QtyAdjustmentType is the type of qty adjustment of productRepo.AdjustQuantities method
+// QtyAdjustmentType is the type of qty adjustment of articleRepo.AdjustQuantities method
 const (
 	QtyAdjustmentAdd QtyAdjustmentKind = iota
 	QtyAdjustmentSubtract
 	QtyAdjustmentReplace
 )
 
-// QtyAdjustment describes a qty adjustment for a product.
+// QtyAdjustment describes a qty adjustment for an article.
 type QtyAdjustment struct {
 	ID  ID
 	Qty int

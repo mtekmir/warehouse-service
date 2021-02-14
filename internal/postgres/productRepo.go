@@ -12,6 +12,8 @@ import (
 
 type productRepo struct{}
 
+// ExistingProductsMap is used while importing products. It takes in a barcodes slice and returns 
+// a map of found products barcodes to ids.
 func (productRepo) ExistingProductsMap(ctx context.Context, db product.Executor, bb []*product.Barcode) (map[product.Barcode]product.ID, error) {
 	var op errors.Op = "productRepo.existingProductsMap"
 
@@ -153,6 +155,7 @@ func (productRepo) BatchInsert(ctx context.Context, db product.Executor, pp []*p
 	return inserted, nil
 }
 
+// InsertProductArticles puts the articles of products into product_articles table.
 func (productRepo) InsertProductArticles(ctx context.Context, db product.Executor, arts []*product.ArticleRow) error {
 	var op errors.Op = "productRepo.insertProductArticles"
 

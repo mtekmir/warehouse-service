@@ -33,10 +33,12 @@ type Server struct {
 }
 
 var productPath = regexp.MustCompile(`/products/([0-9]+)`)
+var removeProductsPath = regexp.MustCompile("/products/remove/([0-9]+)")
 
 const (
 	importProductsPath = "/products/import"
 	getProductsPath    = "/products"
+
 	importArticlesPath = "/articles/import"
 	getArticlesPath    = "/articles"
 )
@@ -51,7 +53,7 @@ func (s *Server) Router(w http.ResponseWriter, r *http.Request) {
 	case r.Method == http.MethodGet && productPath.MatchString(r.URL.Path):
 		handler(s.handleGetProduct).ServeHTTP(s.Log, w, r)
 
-	case r.Method == http.MethodPost && productPath.MatchString(r.URL.Path):
+	case r.Method == http.MethodPost && removeProductsPath.MatchString(r.URL.Path):
 		handler(s.handleRemoveProduct).ServeHTTP(s.Log, w, r)
 
 	case r.Method == http.MethodPost && r.URL.Path == importProductsPath:
