@@ -75,7 +75,7 @@ func (a *Article) UnmarshalJSON(data []byte) error {
 
 	s, err := strconv.Atoi(j.Stock)
 	if err != nil {
-		return errors.E(op, err)
+		return errors.E(op, errors.Invalid, err)
 	}
 
 	a.Amount = s

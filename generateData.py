@@ -40,6 +40,12 @@ def gen_articles(n):
     return arts
 
 
+def change_stock_to_amount(art):
+    art["amount_of"] = art["stock"]
+    del art["stock"]
+    return art
+
+
 def gen_products(n):
     prods = []
     for _ in range(n):
@@ -47,10 +53,13 @@ def gen_products(n):
             {
                 "name": f"{adjs[randrange(len(adjs))]} {prod_names[randrange(len(prod_names))]}",
                 "barcode": "{}".format(randrange(100000000, 999999999)),
-                "contain_articles": gen_articles(randrange(1, 3)),
+                "contain_articles": [
+                    change_stock_to_amount(art) for art in gen_articles(randrange(1, 3))
+                ],
             }
         )
     return prods
+
 
 def gen(n):
     inv = {"inventory": gen_articles(n)}

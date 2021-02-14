@@ -55,6 +55,18 @@ func (s *Service) Import(ctx context.Context, rows []*Article) ([]*Article, erro
 	return arts, nil
 }
 
+// FindAll returns all the articles in db.
+func (s *Service) FindAll(ctx context.Context) ([]*Article, error) {
+	var op errors.Op = "articleService.findAll"
+
+	arts, err := s.repo.FindAll(ctx, s.db, nil)
+	if err != nil {
+		return nil, errors.E(op, err)
+	}
+
+	return arts, nil
+}
+
 // NewService creates a new service with required dependencies.
 func NewService(l *logrus.Logger, db *sql.DB, r Repo) *Service {
 	return &Service{

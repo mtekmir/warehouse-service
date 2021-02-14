@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"regexp"
@@ -11,12 +12,24 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+type productService interface {
+	Import(ctx context.Context, rows []*product.Product) error
+	Remove(ctx context.Context, ID product.ID, qty int) (*product.StockInfo, error)
+	Find(ctx context.Context, ID product.ID) (*product.StockInfo, error)
+	FindAll(ctx context.Context, ff *product.Filters) ([]*product.StockInfo, error)
+}
+
+type articleService interface {
+	Import(ctx context.Context, rows []*article.Article) ([]*article.Article, error)
+	FindAll(ctx context.Context) ([]*article.Article, error)
+}
+
 // Server is an abstraction that holds the dependencies for the http server
 // and handles routing.
 type Server struct {
-	productService *product.Service
-	articleService *article.Service
-	log            *logrus.Logger
+	ProductService productService
+	ArticleService articleService
+	Log            *logrus.Logger
 }
 
 var productPath = regexp.MustCompile(`/products/([0-9]+)`)
@@ -25,32 +38,37 @@ const (
 	importProductsPath = "/products/import"
 	getProductsPath    = "/products"
 	importArticlesPath = "/articles/import"
+	getArticlesPath    = "/articles"
 )
 
-func (s *Server) router(w http.ResponseWriter, r *http.Request) {
+// Router is a request multiplexer.
+func (s *Server) Router(w http.ResponseWriter, r *http.Request) {
 	switch {
 
 	case r.Method == http.MethodGet && r.URL.Path == getProductsPath:
-		handler(s.handleGetProducts).ServeHTTP(s.log, w, r)
+		handler(s.handleGetProducts).ServeHTTP(s.Log, w, r)
 
 	case r.Method == http.MethodGet && productPath.MatchString(r.URL.Path):
-		handler(s.handleGetProduct).ServeHTTP(s.log, w, r)
+		handler(s.handleGetProduct).ServeHTTP(s.Log, w, r)
 
 	case r.Method == http.MethodPost && productPath.MatchString(r.URL.Path):
-		handler(s.handleRemoveProduct).ServeHTTP(s.log, w, r)
+		handler(s.handleRemoveProduct).ServeHTTP(s.Log, w, r)
 
 	case r.Method == http.MethodPost && r.URL.Path == importProductsPath:
-		handler(s.handleImportProducts).ServeHTTP(s.log, w, r)
+		handler(s.handleImportProducts).ServeHTTP(s.Log, w, r)
 
 	case r.Method == http.MethodPost && r.URL.Path == importArticlesPath:
-		handler(s.handleImportArticles).ServeHTTP(s.log, w, r)
+		handler(s.handleImportArticles).ServeHTTP(s.Log, w, r)
+
+	case r.Method == http.MethodGet && r.URL.Path == getArticlesPath:
+		handler(s.handleGetArticles).ServeHTTP(s.Log, w, r)
 
 	}
 }
 
 // Start starts the server. Server sets up the routes and starts listening.
 func (s *Server) Start(port string, wTimeout, rTimeout, idleTimeout time.Duration) error {
-	http.Handle("/", applyMiddlewares(http.HandlerFunc(s.router), noPanicMiddleware(s.log), corsMiddleware("*")))
+	http.Handle("/", applyMiddlewares(http.HandlerFunc(s.Router), noPanicMiddleware(s.Log), corsMiddleware("*")))
 
 	srv := http.Server{
 		Addr:         fmt.Sprintf(":%s", port),
@@ -63,11 +81,11 @@ func (s *Server) Start(port string, wTimeout, rTimeout, idleTimeout time.Duratio
 }
 
 // NewServer returns a new server instance with required dependencies.
-func NewServer(l *logrus.Logger, ps *product.Service, as *article.Service) *Server {
+func NewServer(l *logrus.Logger, ps productService, as articleService) *Server {
 	return &Server{
-		log:            l,
-		productService: ps,
-		articleService: as,
+		Log:            l,
+		ProductService: ps,
+		ArticleService: as,
 	}
 }
 
